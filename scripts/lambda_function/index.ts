@@ -18,7 +18,7 @@ export const config: ExampleConfig = {
 };
 
 const dynamoClient = new DynamoDBClient({
-  region: process.env.REGION || "us-east-2",
+  region: process.env.REGION || "us-east-1",
 });
 const client = DynamoDBDocumentClient.from(dynamoClient);
 const params = {
@@ -67,7 +67,7 @@ export const handler = withDurableExecution(
             return { shouldContinue: false };
           }
           console.log("we are not done, wait five mins and try again");
-          return { shouldContinue: true, delay: { minutes: 5 } };
+          return { shouldContinue: true, delay: { minutes: 1 } };
         },
         initialState: "incomplete",
       }

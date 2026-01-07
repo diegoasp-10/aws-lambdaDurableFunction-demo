@@ -20,11 +20,32 @@ echo "Deployment Script"
 echo "=========================================="
 echo ""
 
-echo "Step 1: Installing dependencies..."
+echo "Step 1: Installing CDK dependencies..."
 npm install
 
 echo ""
-echo "Step 4: Deploying all CDK stacks..."
+echo "Step 2: Preparing Lambda function..."
+cd scripts/lambda_function
+
+echo "  - Initializing package.json..."
+npm init -y
+
+echo "  - Installing Lambda dependencies..."
+npm install @aws/durable-execution-sdk-js @aws-sdk/client-lambda @aws-sdk/client-dynamodb @aws-sdk/lib-dynamodb
+
+echo "  - Installing TypeScript..."
+npm install -D typescript @types/node
+
+echo "  - Initializing TypeScript configuration..."
+npx tsc --init
+
+echo "  - Compiling TypeScript to JavaScript..."
+npx tsc
+
+cd ../..
+
+echo ""
+echo "Step 3: Deploying all CDK stacks..."
 npx cdk deploy --all --require-approval never $PROFILE_FLAG
 
 echo ""

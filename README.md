@@ -79,7 +79,21 @@ The deployment will create three stacks:
 
 ## Demo Instructions
 
-### 1. Invoke the Lambda Function
+This demo showcases how AWS Lambda Durable Functions can wait for external state changes. The Lambda function will continuously poll a DynamoDB item until its status changes from "incomplete" to "completed".
+
+### 1. Create the Initial DynamoDB Item
+
+First, create an item in DynamoDB with an "incomplete" status. The durable function will monitor this item:
+
+```bash
+aws dynamodb put-item \
+  --table-name demo-lambda-durable-table \
+  --item '{"pk": {"S": "test-item"}, "value": {"S": "incomplete"}}'
+```
+
+**Note**: The partition key must be `test-item` and the initial value must be `incomplete`.
+
+### 2. Invoke the Lambda Function
 
 Start the durable function execution:
 
@@ -90,9 +104,9 @@ aws lambda invoke \
   response.json
 ```
 
-The function will begin polling the DynamoDB table every 5 minutes, checking for the completion condition.
+The function will begin polling the DynamoDB table every 5 minutes, checking if the item's value has changed to "completed".
 
-### 2. Monitor the Execution
+### 3. Monitor the Execution
 
 View the CloudWatch logs to see the function checking the table:
 
@@ -100,11 +114,13 @@ View the CloudWatch logs to see the function checking the table:
 aws logs tail /aws/lambda/demo-lambda-durable-function-logs --follow
 ```
 
-You should see log messages indicating the function is checking for the "completed" value.
+You should see log messages indicating:
+- "getting data" - The function is querying DynamoDB
+- "we are not done, wait five mins and try again" - The value is still "incomplete"
 
-### 3. Complete the Workflow
+### 4. Change the Item Status (After ~5 Minutes)
 
-Insert the completion item into DynamoDB to trigger function completion:
+Wait approximately 5 minutes to observe the polling behavior, then update the DynamoDB item to mark it as completed:
 
 ```bash
 aws dynamodb put-item \
@@ -112,7 +128,13 @@ aws dynamodb put-item \
   --item '{"pk": {"S": "test-item"}, "value": {"S": "completed"}}'
 ```
 
-### 4. Verify Completion
+**Important**: This simulates a manual approval or an external process completing. In a real-world scenario, this could be:
+- A human approval in a workflow
+- An external API callback
+- A batch job completion
+- Any manual intervention required in your business process
+
+### 5. Verify Completion
 
 The next time the durable function polls (within 5 minutes), it will detect the "completed" value and finish execution. Check the logs to confirm:
 
@@ -120,9 +142,11 @@ The next time the durable function polls (within 5 minutes), it will detect the 
 aws logs tail /aws/lambda/demo-lambda-durable-function-logs --follow
 ```
 
-You should see a message: "we are done, we have the right value in our business logic"
+You should see the message: **"we are done, we have the right value in our business logic"**
 
-### 5. Reset for Another Test
+This confirms the durable function successfully detected the state change and completed its workflow.
+
+### 6. Reset for Another Test
 
 To run the demo again, delete the item from DynamoDB:
 
@@ -131,6 +155,8 @@ aws dynamodb delete-item \
   --table-name demo-lambda-durable-table \
   --key '{"pk": {"S": "test-item"}}'
 ```
+
+Then restart from step 1.
 
 ## Cleanup Instructions
 
